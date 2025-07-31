@@ -2,7 +2,7 @@
 
 echo "🔍 Début de la vérification de l'application..."
 
-if [ -f "./index.html" ]; then
+if [ -f "app/index.html" ]; then
     echo "✅ index.html trouvé."
     echo "✅ Vérification réussie."
     exit 0
