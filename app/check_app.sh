@@ -5,8 +5,8 @@ echo "🔍 Début de la vérification de l'application..."
 if [ -f "app/index.html" ]; then
     echo "✅ index.html trouvé."
     echo "✅ Vérification réussie."
-    return 0
+    exit 0
 else
     echo "❌ Fichier index.html manquant."
-    return 1
+    exit 1
 fi
