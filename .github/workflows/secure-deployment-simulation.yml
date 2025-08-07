@@ -60,7 +60,7 @@ jobs:
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
 
-      # 4. Simulation des commandes SSH (pas de connexions réelle)
+      # 4. Simulation de commandes SSH (pas de connexions réelle)
       - name: Simulate SSH deployment
         run: |
           echo "🛠️ Simulation :"
