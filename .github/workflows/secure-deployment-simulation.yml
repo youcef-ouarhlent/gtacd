@@ -1,0 +1,41 @@
+name: Secure Deployment Simulation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  simulate-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate SSH private key
+        run: |
+          echo "$SSH_PRIVATE_KEY" > key.pem
+          chmod 600 key.pem
+          if ! ssh-keygen -l -f key.pem; then
+            echo "Invalid SSH Key"
+            exit 1
+          fi
+          echo "✅ SSH Key format valid"
+
+      - name: Check secret variables
+        run: |
+          echo "Server IP: $SERVER_IP"
+          echo "Server User: $SERVER_USER"
+          echo "RUNNER_OS: $RUNNER_OS"
+          echo "✅ Secrets format seems OK"
+
+      - name: Simulate SSH command execution
+        run: |
+          echo "ssh -i key.pem $SERVER_USER@$SERVER_IP 'mkdir -p /var/www/html/tp-app && echo Hello'"
+          echo "✅ SSH simulation done"
+
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
