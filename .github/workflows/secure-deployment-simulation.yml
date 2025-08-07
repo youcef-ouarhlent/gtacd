@@ -11,18 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Cloner le dépôt
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Vérifier que la clé privée SSH est correcte et sans passphrase
       - name: Validate SSH private key format
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
-
-          echo "📂 Premières lignes de la clé :"
-          head -n 2 key.pem
 
           first_line=$(head -n 1 key.pem)
 
@@ -40,11 +35,15 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # 3. Vérifier que les autres secrets sont bien définis
       - name: Check secret variables
         run: |
           if [ -z "$SERVER_IP" ]; then
             echo "❌ SERVER_IP est vide"
+            exit 1
+          fi
+
+          if ! [[ "$SERVER_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ SERVER_IP ne semble pas être une adresse IP valide"
             exit 1
           fi
 
@@ -53,20 +52,34 @@ jobs:
             exit 1
           fi
 
-          echo "🌍 SERVER_IP: $SERVER_IP"
-          echo "👤 SERVER_USER: $SERVER_USER"
           echo "✅ Secrets valides"
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
 
-      # 4. Simulation de commandes SSH (pas de connexions réelle)
-      - name: Simulate SSH deployment
+      - name: Simulate command execution - mkdir with sudo
         run: |
-          echo "🛠️ Simulation :"
-          echo "ssh -i key.pem $SERVER_USER@$SERVER_IP 'mkdir -p /var/www/html/tp-app'"
-          echo "ssh -i key.pem $SERVER_USER@$SERVER_IP 'sudo systemctl restart nginx'"
-          echo "✅ Fin de la simulation"
-        env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
+          echo "Création d'un répertoire simulé avec sudo..."
+          sudo mkdir -p /tmp/simulated-deploy/app
+          echo "✅ Répertoire /tmp/simulated-deploy/app créé avec sudo"
+
+      - name: Simulate service check - nginx (or fallback)
+        run: |
+          echo "Vérification d'un service système..."
+          if systemctl list-units --type=service | grep -q nginx; then
+            sudo systemctl status nginx
+            echo "✅ Service nginx trouvé"
+          else
+            echo "Service nginx non trouvé, simulation avec cron"
+            sudo systemctl status cron
+            echo "✅ Service cron testé comme substitut"
+          fi
+
+      - name: Simulate command with sudo
+        run: |
+          echo "Test d'une commande nécessitant sudo :"
+          sudo ls /root || echo "✅ sudo fonctionne mais /root est inaccessible (normal pour le runner GitHub)"
+
+      - name: Cleanup test folder
+        run: |
+          sudo rm -rf /tmp/simulated-deploy
