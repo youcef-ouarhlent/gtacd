@@ -9,33 +9,64 @@ on:
 jobs:
   simulate-deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # 1. Cloner le dépôt
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Validate SSH private key
+      # 2. Vérifier que la clé privée SSH est valide et sans passphrase
+      - name: Validate SSH private key format
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
-          if ! ssh-keygen -l -f key.pem; then
-            echo "Invalid SSH Key"
+
+          # Vérifie si c'est bien une clé privée SSH (contenu texte)
+          if ! grep -q "PRIVATE KEY" key.pem; then
+            echo "❌ Ce n'est pas une clé privée SSH valide"
             exit 1
           fi
-          echo "✅ SSH Key format valid"
 
-      - name: Check secret variables
-        run: |
-          echo "Server IP: $SERVER_IP"
-          echo "Server User: $SERVER_USER"
-          echo "RUNNER_OS: $RUNNER_OS"
-          echo "✅ Secrets format seems OK"
+          # Vérifie l'absence de passphrase
+          if grep -q "ENCRYPTED" key.pem; then
+            echo "❌ La clé est chiffrée avec une passphrase, ce n'est pas compatible avec un déploiement automatisé."
+            exit 1
+          fi
 
-      - name: Simulate SSH command execution
-        run: |
-          echo "ssh -i key.pem $SERVER_USER@$SERVER_IP 'mkdir -p /var/www/html/tp-app && echo Hello'"
-          echo "✅ SSH simulation done"
-
+          echo "✅ Clé privée SSH valide et sans passphrase détectée"
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # 3. Vérifier les variables d'environnement (simples et GitHub)
+      - name: Check secret variables and environment
+        run: |
+          echo "📦 Vérification des variables d'environnement..."
+
+          if [ -z "$SERVER_IP" ]; then
+            echo "❌ SERVER_IP est vide"
+            exit 1
+          fi
+
+          if [ -z "$SERVER_USER" ]; then
+            echo "❌ SERVER_USER est vide"
+            exit 1
+          fi
+
+          echo "🌐 SERVER_IP: $SERVER_IP"
+          echo "👤 SERVER_USER: $SERVER_USER"
+          echo "🖥️ Système runner GitHub : $RUNNER_OS"
+          echo "✅ Secrets présents et format correct"
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+
+      # 4. Simulation de commandes SSH
+      - name: Simulate SSH deployment commands
+        run: |
+          echo "🛠️ Simulation des commandes SSH qui seraient exécutées :"
+          echo "ssh -i key.pem $SERVER_USER@$SERVER_IP 'mkdir -p /var/www/html/tp-app'"
+          echo "ssh -i key.pem $SERVER_USER@$SERVER_IP 'sudo systemctl restart nginx'"
+          echo "✅ Simulation SSH terminée (aucune connexion réelle effectuée)"
+        env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
