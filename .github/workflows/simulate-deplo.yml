@@ -1,0 +1,31 @@
+name: Simulate Ansible Deployment
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  simulate-deploy:
+    name: Simulate Ansible Playbook in Ubuntu VM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Display Ansible version
+        run: ansible --version
+
+      - name: Create local inventory file
+        run: |
+          echo "[local]" > inventory.ini
+          echo "localhost ansible_connection=local" >> inventory.ini
+
+      - name: Run Ansible playbook locally
+        run: |
+          ansible-playbook -i inventory.ini ansible/deploy.yml
